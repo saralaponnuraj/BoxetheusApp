@@ -20,11 +20,44 @@ namespace Boxetheus.Controllers
         }
 
         // GET: BoxViews
-        public async Task<IActionResult> Index()
+        // GET: Movies
+        public async Task<IActionResult> Index(string BoxDesign, string searchString)
         {
-            return View(await _context.BoxView.ToListAsync());
-        }
+            if (_context.BoxView == null)
+            {
+                return Problem("Entity set 'BoxetheusContext.BoxView'  is null.");
+            }
 
+            // Use LINQ to get list of genres.
+            IQueryable<string> boxQuery = from m in _context.BoxView
+                                          orderby m.Design
+                                          select m.Design;
+            var BoxViews = from m in _context.BoxView
+                           select m;
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                BoxViews = BoxViews.Where(s => s.Brand!.Contains(searchString));
+            }
+
+            if (!string.IsNullOrEmpty(BoxDesign))
+            {
+                BoxViews = BoxViews.Where(x => x.Design == BoxDesign);
+            }
+
+            var BoxDesignVM = new BoxViewDesignModel
+            {
+                Design = new SelectList(await boxQuery.Distinct().ToListAsync()),
+                BoxViews = await BoxViews.ToListAsync()
+            };
+
+            return View(BoxDesignVM);
+        }
+        [HttpPost]
+        public string Index(string searchString, bool notUsed)
+        {
+            return "From [HttpPost]Index: filter on " + searchString;
+        }
         // GET: BoxViews/Details/5
         public async Task<IActionResult> Details(int? id)
         {
@@ -54,7 +87,7 @@ namespace Boxetheus.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Brand,OrderDate,Category,Design,Shape,Size,Quantity,Price")] BoxView boxView)
+        public async Task<IActionResult> Create([Bind("Id,Brand,OrderDate,Category,Design,Shape,Size,Quantity,Price,Color")] BoxView boxView)
         {
             if (ModelState.IsValid)
             {
@@ -86,7 +119,7 @@ namespace Boxetheus.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Brand,OrderDate,Category,Design,Shape,Size,Quantity,Price")] BoxView boxView)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Brand,OrderDate,Category,Design,Shape,Size,Quantity,Price,Color")] BoxView boxView)
         {
             if (id != boxView.Id)
             {
